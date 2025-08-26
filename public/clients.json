@@ -1,0 +1,68 @@
+{
+  "clients": [
+    {
+      "id": "001",
+      "name": "Natureza Flora",
+      "dvrs": [
+        {
+          "id": "dvr-00101",
+          "name": "DVR 1",
+          "vendor": "intelbras",
+          "auth": {
+            "ip": "naturezaflora.ddns-intelbras.com.br",
+            "httpPort": 8011,
+            "username": "admin",
+            "password": "R3D@n4tur3z4",
+            "https": false
+          },
+          "channels": 18
+        },
+        {
+          "id": "dvr-00102",
+          "name": "DVR 2",
+          "vendor": "hikvision",
+          "auth": {
+            "ip": "naturezaflora.ddns-intelbras.com.br",
+            "httpPort": 8021,
+            "username": "admin",
+            "password": "R3D@n4tur3z4",
+            "https": false
+          },
+          "channels": 16
+        }
+      ]
+    },
+    {
+      "id": "002",
+      "name": "New Generation",
+      "dvrs": [
+        {
+          "id": "00201",
+          "name": "DVR 1",
+          "vendor": "hikvision",
+          "auth": {
+            "ip": "192.168.1.70",
+            "httpPort": 8080,
+            "username": "admin",
+            "password": "senha",
+            "https": false
+          },
+          "channels": 12
+        },
+        {
+          "id": "00202",
+          "name": "DVR 2",
+          "vendor": "hikvision",
+          "auth": {
+            "ip": "192.168.1.70",
+            "httpPort": 8080,
+            "username": "admin",
+            "password": "senha",
+            "https": false
+          },
+          "channels": 16
+        }
+      ]
+    }
+  ]
+}
