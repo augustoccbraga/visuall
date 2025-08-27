@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Sidebar from "./components/Sidebar";
 import CameraGrid from "./components/CameraGrid";
-import BottomPanel from "./components/BottomPanel";
+import TopPanel from "./components/TopPanel";
 import EmptyState from "./components/EmptyState";
 import type { Client, DVR } from "./types";
 import { fetchDvrTime, fetchHddInfo, dvrWebUrl } from "./lib/dvr";
@@ -65,8 +65,7 @@ export default function App() {
         onSelect={onSelect}
       />
       <div className="flex-1 flex flex-col">
-        {selected.dvr ? <CameraGrid dvr={selected.dvr} /> : <EmptyState />}
-        <BottomPanel
+        <TopPanel
           clientName={selectedClientName}
           dvr={selected.dvr}
           timeText={timeText}
@@ -75,6 +74,8 @@ export default function App() {
           onHdd={() => {}}
           onOpen={onOpen}
         />
+        {selected.dvr ? <CameraGrid dvr={selected.dvr} /> : <EmptyState />}
+        
       </div>
     </div>
   );

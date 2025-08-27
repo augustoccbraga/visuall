@@ -20,7 +20,7 @@
         {
           "id": "dvr-00102",
           "name": "DVR 2",
-          "vendor": "hikvision",
+          "vendor": "intelbras",
           "auth": {
             "ip": "naturezaflora.ddns-intelbras.com.br",
             "httpPort": 8021,
@@ -28,7 +28,20 @@
             "password": "R3D@n4tur3z4",
             "https": false
           },
-          "channels": 16
+          "channels": 18
+        },
+        {
+          "id": "dvr-00103",
+          "name": "DVR 3",
+          "vendor": "intelbras",
+          "auth": {
+            "ip": "naturezaflora.ddns-intelbras.com.br",
+            "httpPort": 8021,
+            "username": "admin",
+            "password": "R3D@n4tur3z4",
+            "https": false
+          },
+          "channels": 18
         }
       ]
     },
@@ -41,10 +54,10 @@
           "name": "DVR 1",
           "vendor": "hikvision",
           "auth": {
-            "ip": "192.168.1.70",
-            "httpPort": 8080,
+            "ip": "newgeneration.dyndns.info",
+            "httpPort": 8011,
             "username": "admin",
-            "password": "senha",
+            "password": "RDT@n3wg",
             "https": false
           },
           "channels": 12
@@ -54,10 +67,10 @@
           "name": "DVR 2",
           "vendor": "hikvision",
           "auth": {
-            "ip": "192.168.1.70",
-            "httpPort": 8080,
+            "ip": "newgeneration.dyndns.info",
+            "httpPort": 8021,
             "username": "admin",
-            "password": "senha",
+            "password": "RDT@n3wg",
             "https": false
           },
           "channels": 16

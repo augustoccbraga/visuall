@@ -1,5 +1,4 @@
 import type { DVR, TimeResult, HDDInfo } from "../types";
-import { urlWithAuth } from "./http";
 
 function scheme(dvr: DVR) { return dvr.auth.https ? "https" : "http"; }
 function hostOf(dvr: DVR) { return dvr.auth.ddns || dvr.auth.ip; }
@@ -7,14 +6,17 @@ function baseUrl(s: "http" | "https", h: string, p?: number) { return p ? `${s}:
 export function dvrWebUrl(dvr: DVR) { return baseUrl(scheme(dvr), hostOf(dvr), dvr.auth.httpPort); }
 
 export function snapshotUrl(dvr: DVR, channel: number) {
-  const base = dvrWebUrl(dvr);
-  if (dvr.vendor === "intelbras") {
-    return urlWithAuth(`${base}/cgi-bin/snapshot.cgi?channel=${channel}`, dvr.auth.username, dvr.auth.password);
-  }
-  const id = channel * 100 + 1;
-  return urlWithAuth(`${base}/ISAPI/Streaming/channels/${id}/picture`, dvr.auth.username, dvr.auth.password);
+  const q = new URLSearchParams({
+    vendor: dvr.vendor,
+    scheme: scheme(dvr),
+    host: hostOf(dvr),
+    port: String(dvr.auth.httpPort || ""),
+    user: dvr.auth.username,
+    pass: dvr.auth.password,
+    ch: String(channel),
+  });
+  return `/__dvr/snapshot?${q.toString()}`;
 }
-
 
 function parseIntelbrasTime(txt: string) {
   const m = txt.match(/(?:result|time|LocalTime)\s*=\s*([^\r\n]+)/i);
