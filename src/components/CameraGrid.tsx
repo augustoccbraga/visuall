@@ -1,54 +1,79 @@
-import { useEffect, useMemo, useState } from "react";
-import type { DVR } from "../types";
-import { snapshotUrl } from "../lib/dvr";
+// src/components/CameraGrid.tsx
+import { useEffect, useMemo, useState } from "react"
+import { useDvrStore } from "../state/useDvrStore"
+import type { DVR } from "../types"
+import { FaceFrownIcon } from "@heroicons/react/20/solid"
 
-type Cell = { ch: number; src: string; ok: boolean | null; nonce: number };
+const API_BASE = ((import.meta as any).env?.VITE_API_BASE || "/api").replace(/\/+$/,"")
 
-export default function CameraGrid({ dvr }: { dvr: DVR }) {
-  const [cells, setCells] = useState<Cell[]>([]);
+export default function CameraGrid({ dvr }: { dvr?: DVR }) {
+  const activeDvrId = useDvrStore(s => s.activeDvrId)
+  const entry = useDvrStore(s => (activeDvrId ? s.byId[activeDvrId] : undefined))
+  const getResolvedCounts = useDvrStore(s => s.getResolvedCounts)
+
+  const [seed, setSeed] = useState(0)
+  const [wipeKey, setWipeKey] = useState("")
+
   useEffect(() => {
-    const list = Array.from({ length: dvr.channels }).map((_, i) => {
-      const ch = i + 1;
-      const src = snapshotUrl(dvr, ch);
-      return { ch, src, ok: null, nonce: Date.now() };
-    });
-    setCells(list);
-  }, [dvr]);
+    const k = `${activeDvrId || "none"}:${Date.now()}`
+    setWipeKey(k)
+    setSeed(Date.now())
+  }, [activeDvrId])
 
-  const grid = useMemo(() => {
-    const size = 16;
-    const arr = Array.from({ length: size }).map((_, i) => cells[i] || null);
-    return arr;
-  }, [cells]);
+  const totalChannels = useMemo(() => {
+    if (activeDvrId) return getResolvedCounts(activeDvrId).total
+    return dvr?.declaredChannels ?? 0
+  }, [activeDvrId, entry?.counts, entry?.channels, dvr?.declaredChannels])
 
-  const refreshOne = (idx: number) => {
-    setCells(s => s.map((c, i) => i === idx ? { ...c, nonce: Date.now(), ok: null } : c));
-  };
+  const onlineSet = useMemo(() => {
+    const a = entry?.indices?.analog || []
+    const b = entry?.indices?.ip || []
+    return new Set<number>([...a, ...b])
+  }, [entry?.indices])
+
+  const side = Math.max(2, Math.ceil(Math.sqrt(Math.max(1, totalChannels))))
+  const totalTiles = side * side
 
   return (
-    <div className="flex-1 bg-zinc-200">
-      <div className="grid grid-cols-4 grid-rows-4 gap-px bg-zinc-400 h-[calc(100vh-140px)]">
-        {grid.map((cell, i) => (
-          <div key={i} className="bg-zinc-200 relative">
-            {cell ? (
-              <>
+    <div key={wipeKey} className="flex-1 bg-zinc-200">
+      <div
+        className="grid gap-px bg-zinc-400 h-[calc(100vh-200px)]"
+        style={{ gridTemplateColumns: `repeat(${side}, minmax(0,1fr))`, gridTemplateRows: `repeat(${side}, minmax(0,1fr))` }}
+      >
+        {Array.from({ length: totalTiles }, (_, i) => {
+          const within = i < totalChannels
+          const isOnline = within && onlineSet.has(i)
+          const label = i + 1
+          const snapUrl = isOnline && activeDvrId ? `${API_BASE}/dvrs/${encodeURIComponent(activeDvrId)}/snapshot/${i}?t=${seed}` : null
+          const dot = !within ? "bg-zinc-400" : isOnline ? "bg-green-500" : "bg-red-500"
+
+          return (
+            <div key={i} className="bg-zinc-200 relative">
+              {snapUrl ? (
                 <img
-                  src={`${cell.src}${cell.src.includes("?") ? "&" : "?"}t=${cell.nonce}`}
-                  onLoad={() => setCells(s => s.map((c, j) => j === i ? { ...c, ok: true } : c))}
-                  onError={() => setCells(s => s.map((c, j) => j === i ? { ...c, ok: false } : c))}
-                  className="w-full h-full object-cover"
-                  alt={`CAM ${cell.ch}`}
+                  src={snapUrl}
+                  className="w-full h-full object-cover bg-black"
+                  draggable={false}
+                  onError={(e) => { (e.currentTarget as HTMLImageElement).style.opacity = "0.2" }}
                 />
-                <div className="absolute top-1 left-1 text-[11px] px-1.5 py-0.5 rounded bg-black/60 text-white">CAM {cell.ch}</div>
-                <button onClick={() => refreshOne(i)} className="absolute top-1 right-1 text-[10px] px-1.5 py-0.5 rounded bg-white/70 hover:bg-white">↻</button>
-                <span className={`absolute bottom-1 right-1 w-2 h-2 rounded-full ${cell.ok === null ? "bg-yellow-400" : cell.ok ? "bg-green-500" : "bg-red-500"}`}></span>
-              </>
-            ) : (
-              <div className="w-full h-full bg-zinc-300"></div>
-            )}
-          </div>
-        ))}
+              ) : within ? (
+                <div className="w-full h-full bg-black flex items-center justify-center">
+                  <div className="flex items-center gap-2">
+                    <FaceFrownIcon className="w-6 h-6 text-red-500" />
+                    <span className="text-red-500 text-sm font-semibold">Câmera offline</span>
+                  </div>
+                </div>
+              ) : (
+                <div className="w-full h-full bg-zinc-300" />
+              )}
+
+              <div className="absolute top-1 left-1 text-[11px] px-1.5 py-0.5 rounded bg-black/60 text-white">CAM {label}</div>
+              <button onClick={() => setSeed(Date.now())} className="absolute top-1 right-1 text-[10px] px-1.5 py-0.5 rounded bg-white/70 hover:bg-white">↻</button>
+              <span className={`absolute bottom-1 right-1 w-2 h-2 rounded-full ${dot}`} />
+            </div>
+          )
+        })}
       </div>
     </div>
-  );
+  )
 }

@@ -13,9 +13,10 @@
             "httpPort": 8011,
             "username": "admin",
             "password": "R3D@n4tur3z4",
-            "https": false
+            "https": false,
+            "ddns": "naturezaflora.ddns-intelbras.com.br"
           },
-          "channels": 18
+          "declaredChannels": 18
         },
         {
           "id": "dvr-00102",
@@ -26,9 +27,10 @@
             "httpPort": 8021,
             "username": "admin",
             "password": "R3D@n4tur3z4",
-            "https": false
+            "https": false,
+            "ddns": "naturezaflora.ddns-intelbras.com.br"
           },
-          "channels": 18
+          "declaredChannels": 18
         },
         {
           "id": "dvr-00103",
@@ -36,12 +38,13 @@
           "vendor": "intelbras",
           "auth": {
             "ip": "naturezaflora.ddns-intelbras.com.br",
-            "httpPort": 8021,
+            "httpPort": 8031,
             "username": "admin",
             "password": "R3D@n4tur3z4",
-            "https": false
+            "https": false,
+            "ddns": "naturezaflora.ddns-intelbras.com.br"
           },
-          "channels": 18
+          "declaredChannels": 18
         }
       ]
     },
@@ -50,7 +53,7 @@
       "name": "New Generation",
       "dvrs": [
         {
-          "id": "00201",
+          "id": "dvr-00201",
           "name": "DVR 1",
           "vendor": "hikvision",
           "auth": {
@@ -58,12 +61,13 @@
             "httpPort": 8011,
             "username": "admin",
             "password": "RDT@n3wg",
-            "https": false
+            "https": false,
+            "ddns": "newgeneration.dyndns.info"
           },
-          "channels": 12
+          "declaredChannels": 12
         },
         {
-          "id": "00202",
+          "id": "dvr-00202",
           "name": "DVR 2",
           "vendor": "hikvision",
           "auth": {
@@ -71,9 +75,10 @@
             "httpPort": 8021,
             "username": "admin",
             "password": "RDT@n3wg",
-            "https": false
+            "https": false,
+            "ddns": "newgeneration.dyndns.info"
           },
-          "channels": 16
+          "declaredChannels": 16
         }
       ]
     }
