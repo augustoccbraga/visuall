@@ -289,5 +289,63 @@ export async function intelbrasSyncNtp(baseUrl, username, password, address = "a
   }
 }
 
+function parseStorageDeviceInfo(text = "", usedDetailIndex = 1) {
+  const totals = new Map()
+  const useds = new Map()
+  const meta = new Map()
+  let m
+  const reDetail = /(?:^|\n)\s*list\.info\[(\d+)\]\.Detail\[(\d+)\]\.(TotalBytes|UsedBytes|IsError|Path|Type)\s*=\s*([^\r\n]*)/g
+  while ((m = reDetail.exec(text)) !== null) {
+    const i = Number(m[1])
+    const j = Number(m[2])
+    const k = String(m[3]).trim()
+    const v = String(m[4]).trim()
+    if (k === "TotalBytes") totals.set(i, (totals.get(i) || 0) + parseFloat(v))
+    else if (k === "UsedBytes") {
+      if (usedDetailIndex == null || j === usedDetailIndex) useds.set(i, (useds.get(i) || 0) + parseFloat(v))
+    }
+  }
+  const reMeta = /(?:^|\n)\s*list\.info\[(\d+)\]\.(Name|HealthDataFlag|State)\s*=\s*([^\r\n]*)/g
+  while ((m = reMeta.exec(text)) !== null) {
+    const i = Number(m[1])
+    const k = String(m[2]).trim()
+    const v = String(m[3]).trim()
+    const cur = meta.get(i) || {}
+    cur[k] = v
+    meta.set(i, cur)
+  }
+  const idxs = Array.from(new Set([...totals.keys(), ...useds.keys(), ...meta.keys()])).sort((a,b)=>a-b)
+  const toTB = n => n / (1024 ** 4)
+  const lines = []
+  const disks = []
+  for (const i of idxs) {
+    const totalB = totals.get(i) || 0
+    const usedB = useds.get(i) || 0
+    const freeB = Math.max(totalB - usedB, 0)
+    const mt = meta.get(i) || {}
+    const state = String(mt.State || "")
+    const hdf = Number(mt.HealthDataFlag != null ? mt.HealthDataFlag : NaN)
+    const healthOk = (hdf === 0) && /^success$/i.test(state)
+    const totalTB = toTB(totalB)
+    const usedTB = toTB(usedB)
+    lines.push(`HD ${i + 1} total: ${totalTB.toFixed(2)} TB usado: ${usedTB.toFixed(2)} TB`)
+    disks.push({ index: i, name: String(mt.Name || `HD${i+1}`), totalBytes: totalB, usedBytes: usedB, freeBytes: freeB, healthOk, state, healthDataFlag: isNaN(hdf) ? null : hdf })
+  }
+  return { lines, disks }
+}
+
+export async function intelbrasHdd(baseUrl, username, password) {
+  const client = new DigestFetch(username, password)
+  try {
+    const r = await req(client, `${baseUrl}/cgi-bin/storageDevice.cgi?action=getDeviceAllInfo`)
+    if (!r.ok) return { ok: false, status: r.status, hddLines: [], disks: [], raw: r.text || "" }
+    const parsed = parseStorageDeviceInfo(r.text || "", null)
+    return { ok: true, status: r.status, hddLines: parsed.lines, disks: parsed.disks, raw: r.text || "" }
+  } catch {
+    return { ok: false, status: 0, hddLines: [], disks: [], raw: "" }
+  }
+}
+
+
 
 export default intelbrasOverview;

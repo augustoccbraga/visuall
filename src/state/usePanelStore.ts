@@ -59,17 +59,19 @@ export const usePanelStore = create<PanelStore>()(
         }
 
         try {
-          const [ro, rt] = await Promise.all([
+          const [ro, rt, rh] = await Promise.all([
             fetch(`${API_BASE}/dvrs/${dvrId}/overview`),
-            fetch(`${API_BASE}/dvrs/${dvrId}/current-time`)
+            fetch(`${API_BASE}/dvrs/${dvrId}/current-time`),
+            fetch(`${API_BASE}/dvrs/${dvrId}/hdd`)
           ])
 
           const jo = ro.ok ? await ro.json() : {}
           const jt = rt.ok ? await rt.json() : {}
+          const jh = rh.ok ? await rh.json() : {}
 
           get().setPanel(dvrId, {
             timeText: jt?.timeText || jt?.iso || "-",
-            hddLines: [],
+            hddLines: Array.isArray(jh?.hddLines) ? jh.hddLines : [],
             lastAt: now,
           })
         } catch {

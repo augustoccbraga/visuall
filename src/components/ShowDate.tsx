@@ -19,7 +19,7 @@ function splitValue(v?: string) {
 export default function ShowDate({ value, ok, onAdjust, onRefresh }: Props) {
   const { date, time } = splitValue(value)
   return (
-    <div className="rounded-xl bg-zinc-800 px-3 py-2 w-48">
+    <div className="rounded-xl bg-zinc-800 px-3 py-2 w-48 h-full">
       <div className="text-xs text-zinc-400">DATA/HORA</div>
       <div className="text-base font-semibold">{date}</div>
       <div className="text-2xl font-bold leading-tight">{time}</div>

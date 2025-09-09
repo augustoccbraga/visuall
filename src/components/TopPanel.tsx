@@ -3,6 +3,7 @@ import type { DVR } from "../types"
 import { useDvrStore } from "../state/useDvrStore"
 import { usePanelStore } from "../state/usePanelStore"
 import ShowDate from "./ShowDate"
+import ShowHdd from "./ShowHdd"
 
 const API_BASE = ((import.meta as any).env?.VITE_API_BASE || "/api").replace(/\/+$/,"")
 
@@ -51,6 +52,42 @@ export default function TopPanel({ clientName, dvr, onTime, onHdd, onOpen }: Pro
     return diff <= 30_000
   }, [panel?.timeText])
 
+  const hddItems = useMemo(() => {
+    const lines = Array.isArray(panel?.hddLines) ? panel!.hddLines! : []
+    const parseNum = (x?: string) => {
+      if (!x) return NaN
+      const y = x.replace(",", ".")
+      return parseFloat(y)
+    }
+    const extract = (s: string, key: RegExp) => {
+      const m = s.match(key)
+      if (!m) return null
+      const val = parseNum(m[1])
+      const unit = String(m[2] || "TB").toUpperCase()
+      const tb = unit === "GB" ? val / 1024 : val
+      return isNaN(tb) ? null : tb
+    }
+    const items = lines.slice(0, 2).map((line, i) => {
+      const total =
+        extract(line, /total\s*[:=]?\s*([\d.,]+)\s*(tb|gb)/i) ??
+        extract(line, /([\d.,]+)\s*(tb|gb)\s*total/i)
+      const usedPrimary =
+        extract(line, /(?:usado|Used)\s*[:=]?\s*([\d.,]+)\s*(tb|gb)/i) ??
+        extract(line, /([\d.,]+)\s*(tb|gb)\s*(?:usado|used)/i)
+      const freeFallback =
+        extract(line, /(?:livre|Free)\s*[:=]?\s*([\d.,]+)\s*(tb|gb)/i) ??
+        extract(line, /([\d.,]+)\s*(tb|gb)\s*(?:livre|free)/i)
+      let sizeText = "-"
+      if (total != null) {
+        const used = usedPrimary != null ? usedPrimary : (freeFallback != null ? Math.max(0, total - freeFallback) : null)
+        if (used != null) sizeText = `${used.toFixed(2)}/${total.toFixed(2)} TB`
+      }
+      return { name: `HD ${i + 1}`, sizeText, daysText: "" }
+    })
+    if (items.length === 0) return []
+    return items
+  }, [panel?.hddLines])
+
   return (
     <div className="h-full bg-zinc-900 text-zinc-100 border-zinc-700">
       <div className="mx-auto px-2 py-2">
@@ -63,31 +100,23 @@ export default function TopPanel({ clientName, dvr, onTime, onHdd, onOpen }: Pro
               onAdjust={doNtpSync}
               onRefresh={() => { if (activeDvrId) fetchPanelIfStale(activeDvrId, true).catch(() => {}) }}
             />
-
-            <div className="text-sm">
-              <div className="text-zinc-400">HDDs</div>
-              <div className="flex items-center gap-2">
-                <div className="px-2 py-1 rounded bg-zinc-800 whitespace-pre">{panel?.hddLines?.length ? panel.hddLines.join("\n") : "-"}</div>
-                <button onClick={onHdd} className="px-2 py-1 text-xs rounded bg-zinc-700 hover:bg-zinc-600">VERIFICAR</button>
-                <button onClick={() => { if (activeDvrId) fetchPanelIfStale(activeDvrId, true).catch(() => {}) }} className="px-2 py-1 text-xs rounded bg-zinc-700 hover:bg-zinc-600">↻</button>
-              </div>
-            </div>
-
+            <ShowHdd
+              items={hddItems}
+              onVerify={onHdd}
+              onRefresh={() => { if (activeDvrId) fetchPanelIfStale(activeDvrId, true).catch(() => {}) }}
+            />
             <div className="text-sm">
               <div className="text-zinc-400">Câmeras analógicas</div>
               <div className="px-2 py-1 rounded bg-zinc-800">{counts?.analog ?? "-"}</div>
             </div>
-
             <div className="text-sm">
               <div className="text-zinc-400">Câmeras IPs</div>
               <div className="px-2 py-1 rounded bg-zinc-800">{counts?.ip ?? "-"}</div>
             </div>
-
             <div className="text-sm">
               <div className="text-zinc-400">Câmeras IPs offline</div>
               <div className="px-2 py-1 rounded bg-zinc-800">{panel?.ipOffline ?? "-"}</div>
             </div>
-
             <div className="ml-auto">
               <button onClick={onOpen} disabled={!dvr} className="px-3 py-2 rounded bg-zinc-100 text-zinc-900 text-xs hover:opacity-90 disabled:opacity-60">ABRIR INTERFACE WEB</button>
             </div>

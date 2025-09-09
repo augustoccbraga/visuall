@@ -5,7 +5,7 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { hikvisionOverview, jflOverview } from "./vendors/hikvision.js";
-import { intelbrasOverview, intelbrasChannels, intelbrasPing, intelbrasSnapshot, intelbrasCurrentTime, intelbrasSyncNtp } from "./vendors/intelbras.js"
+import { intelbrasOverview, intelbrasChannels, intelbrasPing, intelbrasSnapshot, intelbrasCurrentTime, intelbrasSyncNtp, intelbrasHdd } from "./vendors/intelbras.js"
 
 const app = express();
 app.use(cors({ origin: process.env.CORS_ORIGIN || true }));
@@ -186,7 +186,6 @@ app.get("/api/dvrs/:id/channels", async (req, res) => {
   }
 })
 
-
 app.get("/api/dvrs/:id/snapshot/:index", async (req, res) => {
   try {
     const dvr = findDvrById(req.params.id)
@@ -237,6 +236,24 @@ app.get("/api/dvrs/:id/ntp-sync", async (req, res) => {
   }
 })
 
+app.get("/api/dvrs/:id/hdd", async (req, res) => {
+  const t0 = Date.now()
+  try {
+    const dvr = findDvrById(req.params.id)
+    if (!dvr) return res.sendStatus(404)
+    const baseUrl = dvrBaseUrl(dvr)
+    if (!baseUrl) return res.sendStatus(400)
+    if (dvr.vendor !== "intelbras") return res.status(501).json({ hddLines: [] })
+    const r = await intelbrasHdd(baseUrl, dvr.auth.username, dvr.auth.password)
+    const ms = Date.now() - t0
+    log("[api] hdd", dvr.id, r.ok ? (r.hddLines || []).length + " linhas" : "fail", ms + "ms")
+    return res.status(r.ok ? 200 : 502).json({ hddLines: r.hddLines || [] })
+  } catch {
+    const ms = Date.now() - t0
+    log("[api] hdd", req.params.id, "error", ms + "ms")
+    return res.status(500).json({ hddLines: [] })
+  }
+})
 
 loadClients();
 if (pollEnabled) startPolling();
