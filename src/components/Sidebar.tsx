@@ -46,26 +46,22 @@ export default function Sidebar({ clients: clientsProp = [], selected, onSelect 
 
 
   return (
-    <aside className="w-56 bg-zinc-900 text-zinc-100 h-screen flex flex-col">
-      <div className="h-12 px-4 flex items-center gap-2 border-b border-zinc-800">
-        <div className="w-2 h-2 bg-cyan-300 rounded-full" />
-        <div className="font-semibold tracking-wider">VISUALL</div>
-      </div>
+    <aside className="w-full text-black h-screen flex flex-col bg-[#313131] bg-[radial-gradient(rgba(255,255,255,0.171)_1px,transparent_0)] bg-[length:30px_30px] bg-[-25px_-1px] border-r border-white">
       <div className="flex-1 overflow-auto text-sm">
         {clients.map(c => {
           const open = !!openClients[c.id];
           return (
-            <div key={c.id} className="border-b border-zinc-800">
+            <div key={c.id} className="border-b border-gray-300 bg-zinc-800">
               <button
                 onClick={() => setOpenClients(s => ({ ...s, [c.id]: !open }))}
-                className="w-full px-3 py-2 flex items-center justify-between hover:bg-zinc-800"
+                className="w-full px-3 py-2 flex items-center justify-between hover:bg-zinc-900 cursor-pointer"
               >
-                <span>{c.name.replace(/^Cliente\s*/i, "") || c.name}</span>
-                {open ? <ChevronUpIcon className="w-4 h-4 text-zinc-400" /> : <ChevronDownIcon className="w-4 h-4 text-zinc-400" />}
+                <span className="text-white">{c.name.replace(/^Cliente\s*/i, "") || c.name}</span>
+                {open ? <ChevronUpIcon className="w-8 h-8 text-gray-300" /> : <ChevronDownIcon className="w-8 h-8 text-gray-300" />}
               </button>
 
               {open && (
-                <div className="pb-2">
+                <div>
                   {c.dvrs.map(d => {
                     const active = selected.clientId === c.id && selected.dvrId === d.id;
                     const isOpen = !!openDvrs[d.id];

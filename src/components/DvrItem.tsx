@@ -81,10 +81,10 @@ export default function DvrItem({ client, dvr, active, isOpen, onToggle, onSelec
         tabIndex={0}
         onClick={handleSelect}
         onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleSelect() }}
-        className={`w-full px-4 py-2 flex items-center gap-2 cursor-pointer ${active ? "bg-zinc-800" : "hover:bg-zinc-800"}`}
+        className={`w-full px-4 py-2 flex items-center gap-2 cursor-pointer border-t border-white ${active ? "bg-zinc-700" : "hover:bg-zinc-900"}`}
       >
         <span className={`w-2 h-2 rounded-full ${statusDotCls(status)}`} />
-        <span className="flex-1 text-left">{entry?.name ?? dvr.name}</span>
+        <span className="flex-1 text-left text-white">{entry?.name ?? dvr.name}</span>
         <span className="inline-flex items-center gap-2" title={breakdownTitle}>
           <span className="inline-flex items-center gap-1 text-xs text-zinc-300">
             <VideoCameraIcon className="w-4 h-4" />

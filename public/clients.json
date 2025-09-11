@@ -81,6 +81,68 @@
           "declaredChannels": 16
         }
       ]
+    },
+    {
+      "id": "003",
+      "name": "Green Village",
+      "dvrs": [
+        {
+          "id": "dvr-00301",
+          "name": "DVR 1",
+          "vendor": "intelbras",
+          "auth": {
+            "ip": "74260768fd98.sn.mynetname.net",
+            "httpPort": 8011,
+            "username": "admin",
+            "password": "RDT@gr33n",
+            "https": false,
+            "ddns": "74260768fd98.sn.mynetname.net"
+          },
+          "declaredChannels": 18
+        },
+        {
+          "id": "dvr-00302",
+          "name": "DVR 2",
+          "vendor": "intelbras",
+          "auth": {
+            "ip": "192.168.1.12",
+            "httpPort": 8021,
+            "username": "admin",
+            "password": "@r3d3t3l@",
+            "https": false,
+            "ddns": "74260768fd98.sn.mynetname.net"
+          },
+          "declaredChannels": 18
+        },
+        {
+          "id": "dvr-00303",
+          "name": "DVR 3",
+          "vendor": "intelbras",
+          "auth": {
+            "ip": "74260768fd98.sn.mynetname.net",
+            "httpPort": 8031,
+            "username": "admin",
+            "password": "@r3d3t3l@",
+            "https": false,
+            "ddns": "74260768fd98.sn.mynetname.net"
+          },
+          "declaredChannels": 18
+        },
+        {
+          "id": "dvr-00304",
+          "name": "DVR 4",
+          "vendor": "intelbras",
+          "auth": {
+            "ip": "74260768fd98.sn.mynetname.net",
+            "httpPort": 6500,
+            "username": "admin",
+            "password": "RDT@gr33n",
+            "https": false,
+            "ddns": "74260768fd98.sn.mynetname.net"
+          },
+          "declaredChannels": 18
+        }
+      ]
     }
   ]
 }

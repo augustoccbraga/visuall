@@ -1,9 +1,13 @@
+// src/components/TopPanel.tsx
 import { useEffect, useMemo } from "react"
 import type { DVR } from "../types"
 import { useDvrStore } from "../state/useDvrStore"
 import { usePanelStore } from "../state/usePanelStore"
 import ShowDate from "./ShowDate"
 import ShowHdd from "./ShowHdd"
+import ShowInfo from "./ShowInfo"
+import { ArrowPathIcon } from "@heroicons/react/20/solid"
+
 
 const API_BASE = ((import.meta as any).env?.VITE_API_BASE || "/api").replace(/\/+$/,"")
 
@@ -89,11 +93,15 @@ export default function TopPanel({ clientName, dvr, onTime, onHdd, onOpen }: Pro
   }, [panel?.hddLines])
 
   return (
-    <div className="h-full bg-zinc-900 text-zinc-100 border-zinc-700">
-      <div className="mx-auto px-2 py-2">
-        <div className="text-lg font-semibold">{clientName || "-"} - {dvr?.name || "-"}</div>
-        <div className="p-2">
-          <div className="flex flex-wrap items-center gap-3">
+    <div className="h-full bg-zinc-900 text-zinc-100">
+      <div className="mx-auto divide-y  border-white">
+        <div className="text-lg font-semibold p-2">{clientName || "-"} - {dvr?.name || "-"} 
+          <button onClick={() => { if (activeDvrId) fetchPanelIfStale(activeDvrId, true).catch(() => {}) }} className="p-1.5 rounded bg-zinc-800 hover:bg-zinc-700">
+            <ArrowPathIcon className="w-5 h-5" />
+          </button>
+        </div>
+        <div className="">
+          <div className="flex flex-wrap items-center divide-x border-b">
             <ShowDate
               value={panel?.timeText}
               ok={timeOk}
@@ -103,23 +111,16 @@ export default function TopPanel({ clientName, dvr, onTime, onHdd, onOpen }: Pro
             <ShowHdd
               items={hddItems}
               onVerify={onHdd}
+              ok={true}
               onRefresh={() => { if (activeDvrId) fetchPanelIfStale(activeDvrId, true).catch(() => {}) }}
             />
-            <div className="text-sm">
-              <div className="text-zinc-400">Câmeras analógicas</div>
-              <div className="px-2 py-1 rounded bg-zinc-800">{counts?.analog ?? "-"}</div>
-            </div>
-            <div className="text-sm">
-              <div className="text-zinc-400">Câmeras IPs</div>
-              <div className="px-2 py-1 rounded bg-zinc-800">{counts?.ip ?? "-"}</div>
-            </div>
-            <div className="text-sm">
-              <div className="text-zinc-400">Câmeras IPs offline</div>
-              <div className="px-2 py-1 rounded bg-zinc-800">{panel?.ipOffline ?? "-"}</div>
-            </div>
-            <div className="ml-auto">
-              <button onClick={onOpen} disabled={!dvr} className="px-3 py-2 rounded bg-zinc-100 text-zinc-900 text-xs hover:opacity-90 disabled:opacity-60">ABRIR INTERFACE WEB</button>
-            </div>
+            <ShowInfo
+              counts={counts}
+              panel={panel}
+              dvr={!!dvr}
+              onOpen={onOpen}
+              onRefresh={() => { if (activeDvrId) fetchPanelIfStale(activeDvrId, true).catch(() => {}) }}
+            />
           </div>
         </div>
       </div>

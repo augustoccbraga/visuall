@@ -54,29 +54,30 @@ export default function App() {
   const dvrForGrid = selected.dvr ? { ...selected.dvr, channels: storeEntry?.channels } : undefined
 
   return (
-    <div className="h-screen w-screen overflow-hidden flex">
+    <div className="h-screen w-screen overflow-hidden grid grid-cols-[15%_auto] grid-rows-[15%_auto] bg-zinc-900">
+      <div className="p-12 flex items-center place-content-center border-b border-r border-white">
+        <img src="/LOGO-white.svg" alt="VISUALL" className="h-16" />
+      </div>
+      <TopPanel
+        clientName={selected.client?.name}
+        dvr={dvrForGrid}
+        timeText="-"
+        hddLines={[]}
+        analogCount={counts?.analog}
+        ipCount={counts?.ip}
+        onTime={() => {}}
+        onHdd={() => {}}
+        onOpen={() => {
+          const u = webUrl(selected.dvr)
+          if (u) window.open(u, "_blank", "noopener,noreferrer")
+        }}
+      />
       <Sidebar
         clients={clients}
         selected={{ clientId: selected.client?.id, dvrId: selected.dvr?.id }}
-        onSelect={(client, dvr) => setActiveDvr(dvr?.id)}
+        onSelect={(dvr) => setActiveDvr(dvr?.id)}
       />
-      <div className="flex-1 flex flex-col">
-        <TopPanel
-          clientName={selected.client?.name}
-          dvr={dvrForGrid}
-          timeText="-"
-          hddLines={[]}
-          analogCount={counts?.analog}
-          ipCount={counts?.ip}
-          onTime={() => {}}
-          onHdd={() => {}}
-          onOpen={() => {
-            const u = webUrl(selected.dvr)
-            if (u) window.open(u, "_blank", "noopener,noreferrer")
-          }}
-        />
-        {selected.dvr ? <CameraGrid dvr={dvrForGrid} /> : <EmptyState />}
-      </div>
+      {selected.dvr ? <CameraGrid dvr={dvrForGrid} /> : <EmptyState />}
     </div>
   )
 }

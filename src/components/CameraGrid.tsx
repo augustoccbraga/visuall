@@ -35,9 +35,9 @@ export default function CameraGrid({ dvr }: { dvr?: DVR }) {
   const totalTiles = side * side
 
   return (
-    <div key={wipeKey} className="flex-1 bg-zinc-200">
+    <div key={wipeKey} className="flex-1">
       <div
-        className="grid gap-px bg-zinc-400 h-[calc(100vh-200px)]"
+        className="grid gap-px h-[calc(100vh-15%)]"
         style={{ gridTemplateColumns: `repeat(${side}, minmax(0,1fr))`, gridTemplateRows: `repeat(${side}, minmax(0,1fr))` }}
       >
         {Array.from({ length: totalTiles }, (_, i) => {

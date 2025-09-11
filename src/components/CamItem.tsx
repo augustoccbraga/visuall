@@ -13,7 +13,7 @@ export default function CamItem({ dvrId, index, name, online }: Props) {
   const color = explicit == null ? "text-green-500" : explicit ? "text-green-500" : "text-red-500"
 
   return (
-    <div className="flex items-center justify-between text-zinc-300 p-2 border-b pl-4 text-xs">
+    <div className="flex items-center justify-between text-zinc-300 p-2 border-t border-white pl-4 text-xs">
       <div className="flex items-center gap-2">
         <Icon className={`h-5 w-5 ${color}`} />
         <span>{name || `CAM ${index}`}</span>

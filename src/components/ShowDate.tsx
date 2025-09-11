@@ -19,17 +19,11 @@ function splitValue(v?: string) {
 export default function ShowDate({ value, ok, onAdjust, onRefresh }: Props) {
   const { date, time } = splitValue(value)
   return (
-    <div className="rounded-xl bg-zinc-800 px-3 py-2 w-48 h-full">
+    <div className="p-2 flex flex-row gap-2 items-center">
       <div className="text-xs text-zinc-400">DATA/HORA</div>
-      <div className="text-base font-semibold">{date}</div>
-      <div className="text-2xl font-bold leading-tight">{time}</div>
-      <div className="mt-2 flex items-center gap-2">
-        <button onClick={onRefresh} className="p-1.5 rounded bg-zinc-800 hover:bg-zinc-700">
-          <ArrowPathIcon className="w-5 h-5" />
-        </button>
-        <button onClick={onAdjust} className="p-1.5 rounded bg-zinc-800 hover:bg-zinc-700">
-          <WrenchIcon className="w-5 h-5" />
-        </button>
+      <div className="text-sm font-bold">{date}</div>
+      <div className="text-sm font-bold">{time}</div>
+      <div className="flex items-center gap-2">
         <div className="ml-auto">
           {ok ? (
             <CheckIcon className="w-6 h-6 text-emerald-500" />
@@ -37,6 +31,9 @@ export default function ShowDate({ value, ok, onAdjust, onRefresh }: Props) {
             <XMarkIcon className="w-6 h-6 text-red-500" />
           )}
         </div>
+        <button onClick={onAdjust} className="p-1.5 rounded bg-zinc-800 hover:bg-zinc-700">
+          <WrenchIcon className="w-5 h-5" />
+        </button>
       </div>
     </div>
   )
