@@ -91,14 +91,14 @@
           "name": "DVR 1",
           "vendor": "intelbras",
           "auth": {
-            "ip": "74260768fd98.sn.mynetname.net",
+            "ip": "192.168.1.11",
             "httpPort": 8011,
             "username": "admin",
             "password": "RDT@gr33n",
             "https": false,
             "ddns": "74260768fd98.sn.mynetname.net"
           },
-          "declaredChannels": 18
+          "declaredChannels": 32
         },
         {
           "id": "dvr-00302",
@@ -119,7 +119,7 @@
           "name": "DVR 3",
           "vendor": "intelbras",
           "auth": {
-            "ip": "74260768fd98.sn.mynetname.net",
+            "ip": "192.168.1.13",
             "httpPort": 8031,
             "username": "admin",
             "password": "@r3d3t3l@",
