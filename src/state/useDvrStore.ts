@@ -1,12 +1,7 @@
-// src/state/useDvrStore.ts
 import { create } from "zustand"
 import { devtools, persist, createJSONStorage } from "zustand/middleware"
 import type { StateStorage } from "zustand/middleware"
-import type { DVR, Channel } from "../types"
-
-export type DvrStatus = "online" | "offline" | "unknown"
-export interface DvrCounts { analog: number; ip: number }
-export interface DvrIndices { analog: number[]; ip: number[] }
+import type { DVR, Channel, DvrStatus, DvrCounts, DvrIndices, OverviewResponse, ChannelsResponse } from "../types"
 
 export interface DvrEntry {
   id: string
@@ -41,9 +36,6 @@ type StoreState = {
   getResolvedCounts: (dvrId: string) => { total: number; analog?: number; ip?: number }
   setStatus: (dvrId: string, status: DvrStatus) => void
 }
-
-type OverviewResponse = { status: DvrStatus; counts?: DvrCounts; indices?: DvrIndices }
-type ChannelsResponse = { channels: Channel[] }
 
 const isBrowser = typeof window !== "undefined"
 const memoryStorage = (): StateStorage => {
@@ -89,7 +81,7 @@ async function requestChannelsFromBackend(dvr: DVR): Promise<ChannelsResponse> {
   return (await r.json()) as ChannelsResponse
 }
 
-async function requestPingIntelbras(dvr: DVR): Promise<DvrStatus> {
+async function requestPing(dvr: DVR): Promise<DvrStatus> {
   const url = `${API_BASE}/dvrs/${encodeURIComponent(dvr.id)}/ping`
   const t0 = Date.now()
   try {
@@ -152,7 +144,7 @@ export const useDvrStore = create<StoreState>()(
           if ((!cur0?.lastStatusAt || now - cur0.lastStatusAt > STATUS_TTL_MS) && !inflight.status.has(dvr.id)) {
             inflight.status.add(dvr.id)
             try {
-              const st = await requestPingIntelbras(dvr)
+              const st = await requestPing(dvr)
               get().setStatus(dvr.id, st)
             } finally {
               inflight.status.delete(dvr.id)
@@ -174,7 +166,7 @@ export const useDvrStore = create<StoreState>()(
         setOverview: (dvrId, { status, counts, indices }) =>
           set((s) => {
             const cur = s.byId[dvrId] || ({ id: dvrId, name: dvrId, vendor: "intelbras", status: "unknown" } as DvrEntry)
-            return { byId: { ...s.byId, [dvrId]: { ...cur, status, counts, indices, lastOverviewAt: Date.now() } } }
+            return { byId: { ...s.byId, [dvrId]: { ...cur, vendor: cur.vendor ?? "intelbras", status, counts, indices, lastOverviewAt: Date.now() } } }
           }, false, "dvr/setOverview"),
 
         fetchChannelsIfStale: async (dvr, force = false) => {
@@ -196,7 +188,7 @@ export const useDvrStore = create<StoreState>()(
         setChannels: (dvrId, channels) =>
           set((s) => {
             const cur = s.byId[dvrId] || ({ id: dvrId, name: dvrId, vendor: "intelbras", status: "unknown" } as DvrEntry)
-            return { byId: { ...s.byId, [dvrId]: { ...cur, channels: [...channels], lastChannelsAt: Date.now() } } }
+            return { byId: { ...s.byId, [dvrId]: { ...cur, vendor: cur.vendor ?? "intelbras", channels: [...channels], lastChannelsAt: Date.now() } } }
           }, false, "dvr/setChannels"),
 
         setChannelOnline: (dvrId, channelIndex, online) =>
@@ -237,7 +229,7 @@ export const useDvrStore = create<StoreState>()(
         setStatus: (dvrId, status) =>
           set((s) => {
             const cur = s.byId[dvrId] || ({ id: dvrId, name: dvrId, vendor: "intelbras", status: "unknown" } as DvrEntry)
-            return { byId: { ...s.byId, [dvrId]: { ...cur, status, lastStatusAt: Date.now() } } }
+            return { byId: { ...s.byId, [dvrId]: { ...cur, vendor: cur.vendor ?? "intelbras", status, lastStatusAt: Date.now() } } }
           }, false, "dvr/setStatus"),
       }),
       {

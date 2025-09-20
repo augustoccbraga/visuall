@@ -4,8 +4,29 @@ import cors from "cors";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
-import { hikvisionOverview, jflOverview } from "./vendors/hikvision.js";
-import { intelbrasOverview, intelbrasChannels, intelbrasPing, intelbrasSnapshot, intelbrasCurrentTime, intelbrasSyncNtp, intelbrasHdd } from "./vendors/intelbras.js"
+import {
+  hikvisionOverview,
+  hikvisionChannels,
+  hikvisionPing,
+  hikvisionSnapshot,
+  hikvisionCurrentTime,
+  hikvisionHdd,
+  jflOverview,
+  jflChannels,
+  jflPing,
+  jflSnapshot,
+  jflCurrentTime,
+  jflHdd
+} from "./vendors/hikvision.js";
+import {
+  intelbrasOverview,
+  intelbrasChannels,
+  intelbrasPing,
+  intelbrasSnapshot,
+  intelbrasCurrentTime,
+  intelbrasSyncNtp,
+  intelbrasHdd
+} from "./vendors/intelbras.js";
 
 const app = express();
 app.use(cors({ origin: process.env.CORS_ORIGIN || true }));
@@ -130,13 +151,14 @@ app.get("/api/dvrs/:id/ping", async (req, res) => {
     if (!dvr) return res.sendStatus(404);
     const baseUrl = dvrBaseUrl(dvr);
     if (!baseUrl) return res.sendStatus(400);
-    if (dvr.vendor === "intelbras") {
-      const r = await intelbrasPing(baseUrl, dvr.auth.username, dvr.auth.password);
-      const ms = Date.now() - t0;
-      log("[api] ping", dvr.id, r.ok ? "online" : "offline", ms + "ms");
-      return res.sendStatus(r.ok ? 200 : 503);
-    }
-    return res.sendStatus(501);
+    let r = { ok: false };
+    if (dvr.vendor === "intelbras") r = await intelbrasPing(baseUrl, dvr.auth.username, dvr.auth.password);
+    else if (dvr.vendor === "hikvision") r = await hikvisionPing(baseUrl, dvr.auth.username, dvr.auth.password);
+    else if (dvr.vendor === "jfl") r = await jflPing(baseUrl, dvr.auth.username, dvr.auth.password);
+    else return res.sendStatus(501);
+    const ms = Date.now() - t0;
+    log("[api] ping", dvr.id, r.ok ? "online" : "offline", ms + "ms");
+    return res.sendStatus(r.ok ? 200 : 503);
   } catch {
     const ms = Date.now() - t0;
     log("[api] ping", req.params.id, "unknown", ms + "ms");
@@ -151,13 +173,14 @@ app.get("/api/dvrs/:id/overview", async (req, res) => {
     if (!dvr) return res.sendStatus(404);
     const baseUrl = dvrBaseUrl(dvr);
     if (!baseUrl) return res.sendStatus(400);
-    if (dvr.vendor === "intelbras") {
-      const r = await intelbrasOverview(baseUrl, dvr.auth.username, dvr.auth.password);
-      const ms = Date.now() - t0;
-      log("[api] overview", dvr.id, r.status, JSON.stringify(r.counts || {}), ms + "ms");
-      return res.json({ status: r.status, counts: r.counts, indices: r.indices });
-    }
-    return res.status(501).json({ status: "unknown" });
+    let r = { status: "unknown", counts: {}, indices: {} };
+    if (dvr.vendor === "intelbras") r = await intelbrasOverview(baseUrl, dvr.auth.username, dvr.auth.password);
+    else if (dvr.vendor === "hikvision") r = await hikvisionOverview(baseUrl, dvr.auth.username, dvr.auth.password);
+    else if (dvr.vendor === "jfl") r = await jflOverview(baseUrl, dvr.auth.username, dvr.auth.password);
+    else return res.status(501).json({ status: "unknown" });
+    const ms = Date.now() - t0;
+    log("[api] overview", dvr.id, r.status, JSON.stringify(r.counts || {}), ms + "ms");
+    return res.json({ status: r.status, counts: r.counts, indices: r.indices });
   } catch {
     const ms = Date.now() - t0;
     log("[api] overview", req.params.id, "unknown", ms + "ms");
@@ -166,94 +189,104 @@ app.get("/api/dvrs/:id/overview", async (req, res) => {
 });
 
 app.get("/api/dvrs/:id/channels", async (req, res) => {
-  const t0 = Date.now()
+  const t0 = Date.now();
   try {
-    const dvr = findDvrById(req.params.id)
-    if (!dvr) return res.sendStatus(404)
-    const baseUrl = dvrBaseUrl(dvr)
-    if (!baseUrl) return res.sendStatus(400)
-    if (dvr.vendor === "intelbras") {
-      const r = await intelbrasChannels(baseUrl, dvr.auth.username, dvr.auth.password)
-      const ms = Date.now() - t0
-      log("[api] channels", dvr.id, (r.channels || []).length, "itens", ms + "ms")
-      return res.json({ channels: r.channels || [] })
-    }
-    return res.status(501).json({ channels: [] })
+    const dvr = findDvrById(req.params.id);
+    if (!dvr) return res.sendStatus(404);
+    const baseUrl = dvrBaseUrl(dvr);
+    if (!baseUrl) return res.sendStatus(400);
+    let r = { channels: [] };
+    if (dvr.vendor === "intelbras") r = await intelbrasChannels(baseUrl, dvr.auth.username, dvr.auth.password);
+    else if (dvr.vendor === "hikvision") r = await hikvisionChannels(baseUrl, dvr.auth.username, dvr.auth.password);
+    else if (dvr.vendor === "jfl") r = await jflChannels(baseUrl, dvr.auth.username, dvr.auth.password);
+    else return res.status(501).json({ channels: [] });
+    const ms = Date.now() - t0;
+    log("[api] channels", dvr.id, (r.channels || []).length, "itens", ms + "ms");
+    return res.json({ channels: r.channels || [] });
   } catch (err) {
-    const ms = Date.now() - t0
-    log("[api] channels", req.params.id, "erro", ms + "ms", err?.message || err)
-    return res.status(200).json({ channels: [] })
+    const ms = Date.now() - t0;
+    log("[api] channels", req.params.id, "erro", ms + "ms", err?.message || err);
+    return res.status(200).json({ channels: [] });
   }
-})
+});
 
 app.get("/api/dvrs/:id/snapshot/:index", async (req, res) => {
   try {
-    const dvr = findDvrById(req.params.id)
-    if (!dvr) return res.sendStatus(404)
-    const baseUrl = dvrBaseUrl(dvr)
-    if (!baseUrl) return res.sendStatus(400)
-    if (dvr.vendor !== "intelbras") return res.sendStatus(501)
-    const r = await intelbrasSnapshot(baseUrl, dvr.auth.username, dvr.auth.password, Number(req.params.index||0))
-    res.status(r.ok ? 200 : 502).setHeader("Content-Type", r.type).send(r.buf)
-  } catch { res.sendStatus(500) }
-})
+    const dvr = findDvrById(req.params.id);
+    if (!dvr) return res.sendStatus(404);
+    const baseUrl = dvrBaseUrl(dvr);
+    if (!baseUrl) return res.sendStatus(400);
+    let r = null;
+    if (dvr.vendor === "intelbras") r = await intelbrasSnapshot(baseUrl, dvr.auth.username, dvr.auth.password, Number(req.params.index || 0));
+    else if (dvr.vendor === "hikvision") r = await hikvisionSnapshot(baseUrl, dvr.auth.username, dvr.auth.password, Number(req.params.index || 0));
+    else if (dvr.vendor === "jfl") r = await jflSnapshot(baseUrl, dvr.auth.username, dvr.auth.password, Number(req.params.index || 0));
+    else return res.sendStatus(501);
+    res.status(r.ok ? 200 : 502).setHeader("Content-Type", r.type).send(r.buf);
+  } catch { res.sendStatus(500); }
+});
 
 app.get("/api/dvrs/:id/current-time", async (req, res) => {
-  const t0 = Date.now()
+  const t0 = Date.now();
   try {
-    const dvr = findDvrById(req.params.id)
-    if (!dvr) return res.sendStatus(404)
-    const baseUrl = dvrBaseUrl(dvr)
-    if (!baseUrl) return res.sendStatus(400)
-    if (dvr.vendor !== "intelbras") return res.status(501).json({ timeText: null, iso: null })
-    const r = await intelbrasCurrentTime(baseUrl, dvr.auth.username, dvr.auth.password)
-    const ms = Date.now() - t0
-    log("[api] current-time", dvr.id, r.ok ? "ok" : "fail", ms + "ms")
-    return res.json({ timeText: r.time || r.iso || "-", iso: r.iso || null })
+    const dvr = findDvrById(req.params.id);
+    if (!dvr) return res.sendStatus(404);
+    const baseUrl = dvrBaseUrl(dvr);
+    if (!baseUrl) return res.sendStatus(400);
+    let r = null;
+    if (dvr.vendor === "intelbras") r = await intelbrasCurrentTime(baseUrl, dvr.auth.username, dvr.auth.password);
+    else if (dvr.vendor === "hikvision") r = await hikvisionCurrentTime(baseUrl, dvr.auth.username, dvr.auth.password);
+    else if (dvr.vendor === "jfl") r = await jflCurrentTime(baseUrl, dvr.auth.username, dvr.auth.password);
+    else return res.status(501).json({ timeText: null, iso: null });
+    const ms = Date.now() - t0;
+    log("[api] current-time", dvr.id, r?.ok ? "ok" : "fail", ms + "ms");
+    return res.json({ timeText: (r?.time || r?.iso || "-") ?? "-", iso: r?.iso || null });
   } catch {
-    const ms = Date.now() - t0
-    log("[api] current-time", req.params.id, "error", ms + "ms")
-    return res.status(500).json({ timeText: null, iso: null })
+    const ms = Date.now() - t0;
+    log("[api] current-time", req.params.id, "error", ms + "ms");
+    return res.status(500).json({ timeText: null, iso: null });
   }
-})
+});
 
 app.get("/api/dvrs/:id/ntp-sync", async (req, res) => {
-  const t0 = Date.now()
+  const t0 = Date.now();
   try {
-    const dvr = findDvrById(req.params.id)
-    if (!dvr) return res.sendStatus(404)
-    const baseUrl = dvrBaseUrl(dvr)
-    if (!baseUrl) return res.sendStatus(400)
-    if (dvr.vendor !== "intelbras") return res.status(501).json({ ok: false })
-    const r = await intelbrasSyncNtp(baseUrl, dvr.auth.username, dvr.auth.password)
-    const ms = Date.now() - t0
-    log("[api] ntp-sync", dvr.id, r.ok ? "ok" : "fail", ms + "ms")
-    return res.status(r.ok ? 200 : 502).json({ ok: r.ok })
+    const dvr = findDvrById(req.params.id);
+    if (!dvr) return res.sendStatus(404);
+    const baseUrl = dvrBaseUrl(dvr);
+    if (!baseUrl) return res.sendStatus(400);
+    if (dvr.vendor !== "intelbras") return res.status(501).json({ ok: false });
+    const r = await intelbrasSyncNtp(baseUrl, dvr.auth.username, dvr.auth.password);
+    const ms = Date.now() - t0;
+    log("[api] ntp-sync", dvr.id, r.ok ? "ok" : "fail", ms + "ms");
+    return res.status(r.ok ? 200 : 502).json({ ok: r.ok });
   } catch (err) {
-    const ms = Date.now() - t0
-    log("[api] ntp-sync", req.params.id, "error", ms + "ms")
-    return res.status(500).json({ ok: false })
+    const ms = Date.now() - t0;
+    log("[api] ntp-sync", req.params.id, "error", ms + "ms");
+    return res.status(500).json({ ok: false });
   }
-})
+});
 
 app.get("/api/dvrs/:id/hdd", async (req, res) => {
-  const t0 = Date.now()
+  const t0 = Date.now();
   try {
-    const dvr = findDvrById(req.params.id)
-    if (!dvr) return res.sendStatus(404)
-    const baseUrl = dvrBaseUrl(dvr)
-    if (!baseUrl) return res.sendStatus(400)
-    if (dvr.vendor !== "intelbras") return res.status(501).json({ hddLines: [] })
-    const r = await intelbrasHdd(baseUrl, dvr.auth.username, dvr.auth.password)
-    const ms = Date.now() - t0
-    log("[api] hdd", dvr.id, r.ok ? (r.hddLines || []).length + " linhas" : "fail", ms + "ms")
-    return res.status(r.ok ? 200 : 502).json({ hddLines: r.hddLines || [] })
+    const dvr = findDvrById(req.params.id);
+    if (!dvr) return res.sendStatus(404);
+    const baseUrl = dvrBaseUrl(dvr);
+    if (!baseUrl) return res.sendStatus(400);
+    let r = null;
+    if (dvr.vendor === "intelbras") r = await intelbrasHdd(baseUrl, dvr.auth.username, dvr.auth.password);
+    else if (dvr.vendor === "hikvision") r = await hikvisionHdd(baseUrl, dvr.auth.username, dvr.auth.password);
+    else if (dvr.vendor === "jfl") r = await jflHdd(baseUrl, dvr.auth.username, dvr.auth.password);
+    else return res.status(501).json({ hddLines: [] });
+    const ms = Date.now() - t0;
+    log("[api] hdd", dvr.id, r?.ok ? (r.hddLines || []).length + " linhas" : "fail", ms + "ms");
+    return res.status(r?.ok ? 200 : 502).json({ hddLines: r?.hddLines || [] });
   } catch {
-    const ms = Date.now() - t0
-    log("[api] hdd", req.params.id, "error", ms + "ms")
-    return res.status(500).json({ hddLines: [] })
+    const ms = Date.now() - t0;
+    log("[api] hdd", req.params.id, "error", ms + "ms");
+    return res.status(500).json({ hddLines: [] });
   }
-})
+});
 
 loadClients();
 if (pollEnabled) startPolling();
