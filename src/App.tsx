@@ -54,8 +54,8 @@ export default function App() {
   const dvrForGrid = selected.dvr ? { ...selected.dvr, channels: storeEntry?.channels } : undefined
 
   return (
-    <div className="h-screen w-screen overflow-hidden grid grid-cols-[15%_auto] grid-rows-[15%_auto] bg-zinc-900">
-      <div className="p-12 flex items-center place-content-center border-b border-r border-white">
+    <div className="h-screen w-screen overflow-hidden grid grid-cols-[15%_85%] grid-rows-[15%_85%] bg-zinc-900">
+      <div className="flex items-center place-content-center border-b border-r border-white">
         <img src="/LOGO-white.svg" alt="VISUALL" className="h-16" />
       </div>
       <TopPanel

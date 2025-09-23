@@ -97,8 +97,8 @@ export default function TopPanel({ clientName, dvr, onTime, onHdd, onOpen }: Pro
   }, [panel?.hddLines])
 
   return (
-    <div className="bg-zinc-900 text-zinc-100">
-      <div className="mx-auto divide-y  border-white">
+    <div className="bg-zinc-900 text-zinc-100 flex self-end border-b">
+      <div className="divide-y  border-white">
         <div className="text-lg font-semibold p-2 flex gap-2">
           {clientName || "-"} - {dvr?.name || "-"} 
           <button onClick={() => { if (activeDvrId) fetchPanelIfStale(activeDvrId, true).catch(() => {}) }} className="p-1.5 rounded bg-zinc-800 hover:bg-zinc-700">
@@ -106,7 +106,7 @@ export default function TopPanel({ clientName, dvr, onTime, onHdd, onOpen }: Pro
           </button>
         </div>
         <div className="">
-          <div className="flex flex-wrap items-center divide-x border-b">
+          <div className="flex flex-wrap items-center divide-x">
             <ShowDate
               value={panel?.timeText}
               ok={timeOk}
