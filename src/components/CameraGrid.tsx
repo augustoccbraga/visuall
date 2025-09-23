@@ -1,4 +1,3 @@
-// src/components/CameraGrid.tsx
 import { useEffect, useMemo, useState } from "react"
 import { useDvrStore } from "../state/useDvrStore"
 import type { DVR } from "../types"
@@ -20,17 +19,18 @@ export default function CameraGrid({ dvr }: { dvr?: DVR }) {
     setSeed(Date.now())
   }, [activeDvrId])
 
-  const totalChannels = useMemo(() => {
-    if (activeDvrId) return getResolvedCounts(activeDvrId).total
-    return dvr?.declaredChannels ?? 0
-  }, [activeDvrId, entry?.counts, entry?.channels, dvr?.declaredChannels])
-
-  const onlineSet = useMemo(() => {
+  const indicesUnion = useMemo(() => {
     const a = entry?.indices?.analog || []
     const b = entry?.indices?.ip || []
-    return new Set<number>([...a, ...b])
-  }, [entry?.indices])
+    const ids = Array.from(new Set([...a, ...b])).sort((x,y)=>x-y)
+    if (ids.length) return ids
+    const fallbackTotal = activeDvrId ? getResolvedCounts(activeDvrId).total : (dvr?.declaredChannels ?? 0)
+    return Array.from({ length: fallbackTotal }, (_, i) => i)
+  }, [entry?.indices, activeDvrId, dvr?.declaredChannels])
 
+  const onlineSet = useMemo(() => new Set(indicesUnion), [indicesUnion])
+
+  const totalChannels = indicesUnion.length
   const side = Math.max(2, Math.ceil(Math.sqrt(Math.max(1, totalChannels))))
   const totalTiles = side * side
 
@@ -42,9 +42,10 @@ export default function CameraGrid({ dvr }: { dvr?: DVR }) {
       >
         {Array.from({ length: totalTiles }, (_, i) => {
           const within = i < totalChannels
-          const isOnline = within && onlineSet.has(i)
-          const label = i + 1
-          const snapUrl = isOnline && activeDvrId ? `${API_BASE}/dvrs/${encodeURIComponent(activeDvrId)}/snapshot/${i}?t=${seed}` : null
+          const chanIndex = within ? indicesUnion[i] : i
+          const isOnline = within && onlineSet.has(chanIndex)
+          const label = chanIndex + 1
+          const snapUrl = isOnline && activeDvrId ? `${API_BASE}/dvrs/${encodeURIComponent(activeDvrId)}/snapshot/${chanIndex}?t=${seed}` : null
           const dot = !within ? "bg-zinc-400" : isOnline ? "bg-green-500" : "bg-red-500"
 
           return (
@@ -52,7 +53,7 @@ export default function CameraGrid({ dvr }: { dvr?: DVR }) {
               {snapUrl ? (
                 <img
                   src={snapUrl}
-                  className="w-full h-full object-cover bg-black"
+                  className="w-full h-full object-fit bg-black"
                   draggable={false}
                   onError={(e) => { (e.currentTarget as HTMLImageElement).style.opacity = "0.2" }}
                 />
@@ -66,10 +67,7 @@ export default function CameraGrid({ dvr }: { dvr?: DVR }) {
               ) : (
                 <div className="w-full h-full bg-zinc-300" />
               )}
-
-              <div className="absolute top-1 left-1 text-[11px] px-1.5 py-0.5 rounded bg-black/60 text-white">CAM {label}</div>
-              <button onClick={() => setSeed(Date.now())} className="absolute top-1 right-1 text-[10px] px-1.5 py-0.5 rounded bg-white/70 hover:bg-white">↻</button>
-              <span className={`absolute bottom-1 right-1 w-2 h-2 rounded-full ${dot}`} />
+              <span className={`absolute top-1 right-1 w-[10px] h-[10px] rounded-full border ${dot}`} />
             </div>
           )
         })}

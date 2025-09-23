@@ -29,14 +29,16 @@ function mapAnalogIdsFromVideoInputs(jsonOrXml){
   const items = arr(list)
   const set = new Set()
   items.forEach((ch,i)=>{
-    const enabled = typeof ch?.videoInputEnabled === "boolean" ? ch.videoInputEnabled : String(ch?.videoInputEnabled ?? "true").toLowerCase() !== "false"
-    const desc = String(ch?.resDesc ?? "").trim().toUpperCase()
-    if (!enabled || desc === "NO VIDEO") return
+    const enabled = typeof ch?.videoInputEnabled === "boolean"
+      ? ch.videoInputEnabled
+      : !/^(false|0)$/i.test(String(ch?.videoInputEnabled ?? "true"))
+    if (!enabled) return
     const id = n(ch?.id,null) ?? n(ch?.channelId,null) ?? n(ch?.logicalChannel,null) ?? n(ch?.["@_id"],null) ?? n(ch?.["@_channelNo"],null) ?? (i+1)
     if (id != null) set.add(id)
   })
   return set
 }
+
 
 function mapIpIdsFromInputProxy(xmlObj){
   const items = arr(xmlObj?.InputProxyChannelList?.InputProxyChannel)
@@ -46,12 +48,6 @@ function mapIpIdsFromInputProxy(xmlObj){
     if (id != null) set.add(id)
   })
   return set
-}
-
-function idToStreamingChannelId(logical){
-  if (!Number.isFinite(logical)) return null
-  if (logical >= 100) return logical
-  return logical * 100 + 1
 }
 
 function parseChanStatusJSON(j){
@@ -64,23 +60,6 @@ function parseChanStatusJSON(j){
     if (id != null) m.set(id, on)
   }
   return m
-}
-
-function parseHddStatusJSON(j){
-  const arrH = arr(j?.HDStatus?.HDs?.HD) || arr(j?.hdd) || arr(j?.HDStatus?.HD)
-  const out = []
-  for (const it of arrH){
-    const i = n(it?.id, out.length) || out.length
-    let totalMB = n(it?.capacity, NaN)
-    let freeMB = n(it?.freeSpace, NaN)
-    if (!Number.isFinite(totalMB) && Number.isFinite(n(it?.total, NaN))) totalMB = n(it?.total, NaN)
-    if (!Number.isFinite(freeMB) && Number.isFinite(n(it?.free, NaN))) freeMB = n(it?.free, NaN)
-    const totalBytes = Number.isFinite(totalMB) ? totalMB * 1024 * 1024 : 0
-    const freeBytes = Number.isFinite(freeMB) ? freeMB * 1024 * 1024 : 0
-    const usedBytes = Math.max(totalBytes - freeBytes, 0)
-    out.push({ index:i, name:String(it?.name || `HD${i+1}`), totalBytes, usedBytes, freeBytes, healthOk: true, state: String(it?.status || ""), healthDataFlag: null })
-  }
-  return out
 }
 
 function parseHddFromXML(xmlObj){
@@ -101,10 +80,31 @@ function parseHddFromXML(xmlObj){
   return out
 }
 
+function parseHddStatusJSON(j){
+  const listA = Array.isArray(j?.HDStatus) ? j.HDStatus : []
+  const listB = arr(j?.HDStatus?.HDs?.HD)
+  const listC = arr(j?.HDStatus?.HD)
+  const list = listA.length ? listA : (listB.length ? listB : listC)
+  const out = []
+  for (let k = 0; k < list.length; k++){
+    const it = list[k]
+    const idx1 = n(it?.hdNo, NaN)
+    const index = Number.isFinite(idx1) ? idx1 - 1 : (n(it?.id, k) || k)
+    const vol = n(it?.volume, NaN) || n(it?.capacity, NaN) || n(it?.total, NaN)
+    const free = n(it?.freeSpace, NaN) || n(it?.free, NaN)
+    const totalBytes = Number.isFinite(vol) ? vol * 1_000_000 : 0
+    const freeBytes = Number.isFinite(free) ? free * 1_000_000 : 0
+    const usedBytes = Math.max(totalBytes - freeBytes, 0)
+    out.push({ index, name: `HD${index+1}`, totalBytes, usedBytes, freeBytes, healthOk: true, state: String(it?.status ?? ""), healthDataFlag: null })
+  }
+  return out
+}
+
 function linesFromDisks(disks){
-  const toTB = v => v / (1024**4)
+  const toTB = v => v / 1e12
   return disks.map(d => `HD ${d.index + 1} total: ${toTB(d.totalBytes).toFixed(2)} TB usado: ${toTB(d.usedBytes).toFixed(2)} TB`)
 }
+
 
 export async function hikvisionOverview(baseUrl, username, password){
   const client = new DigestFetch(username, password)
@@ -132,9 +132,10 @@ export async function hikvisionOverview(baseUrl, username, password){
       ip = ipIdxSet.size
       onlineHits++
     }
-  } catch(e){ dbg("ERR", String(e?.message || e)) }
+  } catch(e){}
   const status = onlineHits > 0 ? "online" : "offline"
-  return { ok: status === "online", status, counts: { analog, ip }, indices: { analog:[...analogIdxSet].sort((a,b)=>a-b), ip:[...ipIdxSet].sort((a,b)=>a-b) } }
+  const toZero = s => [...s].map(v => Number(v) - 1).filter(v => Number.isFinite(v) && v >= 0).sort((a,b)=>a-b)
+  return { ok: status === "online", status, counts: { analog, ip }, indices: { analog: toZero(analogIdxSet), ip: toZero(ipIdxSet) } }
 }
 
 export async function hikvisionChannels(baseUrl, username, password){
@@ -146,10 +147,15 @@ export async function hikvisionChannels(baseUrl, username, password){
     if (jr.ok && jr.json?.VideoInputChannelList){
       const list = arr(jr.json.VideoInputChannelList.VideoInputChannel)
       list.forEach((ch,i)=>{
-        const enabled = typeof ch?.videoInputEnabled === "boolean" ? ch.videoInputEnabled : String(ch?.videoInputEnabled ?? "true").toLowerCase() !== "false"
-        const desc = String(ch?.resDesc ?? "").trim()
+        const enabled = typeof ch?.videoInputEnabled === "boolean"
+          ? ch.videoInputEnabled
+          : !/^(false|0)$/i.test(String(ch?.videoInputEnabled ?? "true"))
         const id = n(ch?.id,null) ?? n(ch?.channelId,null) ?? n(ch?.logicalChannel,null) ?? (i+1)
-        if (id != null && enabled){ analogSet.add(id); if (desc) analogNames.set(id, desc) }
+        if (id != null && enabled){
+          analogSet.add(id)
+          const label = String(ch?.name ?? ch?.resDesc ?? "").trim()
+          if (label) analogNames.set(id, label)
+        }
       })
     } else {
       const xr = await req(client, `${baseUrl}/ISAPI/System/Video/inputs/channels`, "text")
@@ -157,9 +163,13 @@ export async function hikvisionChannels(baseUrl, username, password){
         const xml = makeParser().parse(xr.text)
         const items = arr(xml?.VideoInputChannelList?.VideoInputChannel)
         items.forEach((ch,i)=>{
-          const enabled = String(ch?.videoInputEnabled ?? "true") !== "false"
+          const enabled = !/^(false|0)$/i.test(String(ch?.videoInputEnabled ?? "true"))
           const id = n(ch?.id,null) ?? n(ch?.channelId,null) ?? n(ch?.logicalChannel,null) ?? n(ch?.["@_id"],null) ?? (i+1)
-          if (id != null && enabled){ analogSet.add(id); if (ch?.resDesc) analogNames.set(id, String(ch.resDesc)) }
+          if (id != null && enabled){
+            analogSet.add(id)
+            const label = String(ch?.name ?? ch?.resDesc ?? "").trim()
+            if (label) analogNames.set(id, label)
+          }
         })
       }
     }
@@ -185,14 +195,28 @@ export async function hikvisionChannels(baseUrl, username, password){
   return { ok: true, channels }
 }
 
-export async function hikvisionSnapshot(baseUrl, username, password, indexOrId){
-  const logical = Number(indexOrId)
-  const chId = idToStreamingChannelId(logical < 100 ? logical+1 : logical)
+
+export async function hikvisionSnapshot(baseUrl, username, password, index0){
   const client = new DigestFetch(username, password)
-  const r = await client.fetch(`${baseUrl}/ISAPI/Streaming/channels/${chId}/picture`)
-  const buf = Buffer.from(await r.arrayBuffer())
-  const type = r.headers.get("content-type") || "image/jpeg"
-  return { ok: r.ok, status: r.status, type, buf }
+  const chNo = Number(index0) + 1
+  const idMain = chNo * 100 + 1
+  const urls = [
+    `${baseUrl}/ISAPI/ContentMgmt/StreamingProxy/channels/${idMain}/picture`,
+    `${baseUrl}/ISAPI/ContentMgmt/StreamingProxy/channels/${idMain}/picture?snapShotImageType=JPEG`,
+    `${baseUrl}/ISAPI/Streaming/channels/${idMain}/picture`,
+    `${baseUrl}/ISAPI/ContentMgmt/InputProxy/channels/${chNo}/picture`,
+    `${baseUrl}/ISAPI/Streaming/channels/${idMain+1}/picture`,
+    `${baseUrl}/ISAPI/Streaming/channels/${chNo}/picture?snapShotImageType=JPEG`
+  ]
+  for (const u of urls){
+    const r = await client.fetch(u, { headers: { Accept: "image/jpeg,*/*" } })
+    const ct = r.headers.get("content-type") || ""
+    if (r.ok && !/xml|json/i.test(ct)){
+      const buf = Buffer.from(await r.arrayBuffer())
+      return { ok: true, status: r.status, type: ct || "image/jpeg", buf }
+    }
+  }
+  return { ok: false, status: 502, type: "text/plain", buf: Buffer.from("") }
 }
 
 function extractLocalTimeXml(xmlObj){
@@ -200,10 +224,12 @@ function extractLocalTimeXml(xmlObj){
   return t
 }
 
-function normalizeIso(s=""){
-  const m = /(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2}):(\d{2})/.exec(s)
-  if (!m) return { value: s || null, iso: null }
-  return { value: s, iso: `${m[1]}-${m[2]}-${m[3]}T${m[4]}:${m[5]}:${m[6]}` }
+function normalizeIsoAndDmy(s=""){
+  const m = /(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2}):(\d{2})(?:[.,]\d+)?(?:Z|[+\-]\d{2}:\d{2})?/.exec(s)
+  if (!m) return { iso: null, dmy: null }
+  const iso = `${m[1]}-${m[2]}-${m[3]}T${m[4]}:${m[5]}:${m[6]}`
+  const dmy = `${m[3]}-${m[2]}-${m[1]} ${m[4]}:${m[5]}:${m[6]}`
+  return { iso, dmy }
 }
 
 export async function hikvisionCurrentTime(baseUrl, username, password){
@@ -212,16 +238,16 @@ export async function hikvisionCurrentTime(baseUrl, username, password){
     const jr = await req(client, `${baseUrl}/ISAPI/System/time?format=json`, "json")
     if (jr.ok && jr.json){
       const s = String(jr.json?.Time?.localTime ?? jr.json?.localTime ?? "").trim()
-      const nrm = normalizeIso(s)
-      return { ok: true, status: jr.status, time: nrm.value, iso: nrm.iso, raw: jr.text || "" }
+      const { iso, dmy } = normalizeIsoAndDmy(s)
+      return { ok: true, status: jr.status, time: dmy, iso, raw: jr.text || "" }
     }
   } catch {}
   try{
     const xr = await req(client, `${baseUrl}/ISAPI/System/time`, "text")
     const xml = xr.text ? makeParser().parse(xr.text) : null
-    const s = xml ? extractLocalTimeXml(xml) : ""
-    const nrm = normalizeIso(s)
-    return { ok: xr.ok, status: xr.status, time: nrm.value, iso: nrm.iso, raw: xr.text || "" }
+    const s = xml ? String(xml?.Time?.localTime ?? xml?.localTime ?? "").trim() : ""
+    const { iso, dmy } = normalizeIsoAndDmy(s)
+    return { ok: xr.ok, status: xr.status, time: dmy, iso, raw: xr.text || "" }
   } catch {
     return { ok: false, status: 0, time: null, iso: null, raw: "" }
   }
@@ -255,6 +281,45 @@ export async function hikvisionPing(baseUrl, username, password){
   } catch { return { ok:false, status:0 } }
 }
 
+export async function hikvisionSyncNtp(baseUrl, username, password, opts = {}){
+  const client = new DigestFetch(username, password)
+  const host = String(opts.host || process.env.NTP_HOST || "a.ntp.br")
+  const port = Number(opts.port || process.env.NTP_PORT || 123)
+  const intervalMin = Number(opts.intervalMin || process.env.NTP_INTERVAL_MIN || 10)
+  const id = Number(opts.serverId || 1)
+  const ntpXml =
+    `<?xml version="1.0" encoding="UTF-8"?>` +
+    `<NTPServer version="2.0" xmlns="http://www.isapi.org/ver20/XMLSchema">` +
+    `<id>${id}</id>` +
+    `<addressingFormatType>host</addressingFormatType>` +
+    `<hostName>${host}</hostName>` +
+    `<portNo>${port}</portNo>` +
+    `<synchronizeInterval>${intervalMin}</synchronizeInterval>` +
+    `<enabled>true</enabled>` +
+    `</NTPServer>`
+  let ok = false
+  try{
+    const r1 = await client.fetch(`${baseUrl}/ISAPI/System/time/ntpServers/${id}`, { method:"PUT", headers:{ "Content-Type":"application/xml" }, body: ntpXml })
+    ok = r1.ok || ok
+  }catch{}
+  try{
+    const j = { Time:{ timeMode:"NTP" } }
+    const r2 = await client.fetch(`${baseUrl}/ISAPI/System/time?format=json`, { method:"PUT", headers:{ "Content-Type":"application/json" }, body: JSON.stringify(j) })
+    ok = r2.ok || ok
+    if (!r2.ok){
+      const x = `<?xml version="1.0" encoding="UTF-8"?><Time version="2.0" xmlns="http://www.isapi.org/ver20/XMLSchema"><timeMode>NTP</timeMode></Time>`
+      const r2b = await client.fetch(`${baseUrl}/ISAPI/System/time`, { method:"PUT", headers:{ "Content-Type":"application/xml" }, body: x })
+      ok = r2b.ok || ok
+    }
+  }catch{}
+  try{
+    const r3 = await client.fetch(`${baseUrl}/ISAPI/System/time/ntpServers/${id}/test`, { method:"POST" })
+    ok = r3.ok || ok
+  }catch{}
+  return { ok }
+}
+
+export const jflSyncNtp = hikvisionSyncNtp
 export const jflOverview = hikvisionOverview
 export const jflChannels = hikvisionChannels
 export const jflSnapshot = hikvisionSnapshot

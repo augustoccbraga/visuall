@@ -16,7 +16,9 @@ import {
   jflPing,
   jflSnapshot,
   jflCurrentTime,
-  jflHdd
+  jflHdd,
+  hikvisionSyncNtp,
+  jflSyncNtp
 } from "./vendors/hikvision.js";
 import {
   intelbrasOverview,
@@ -254,12 +256,15 @@ app.get("/api/dvrs/:id/ntp-sync", async (req, res) => {
     if (!dvr) return res.sendStatus(404);
     const baseUrl = dvrBaseUrl(dvr);
     if (!baseUrl) return res.sendStatus(400);
-    if (dvr.vendor !== "intelbras") return res.status(501).json({ ok: false });
-    const r = await intelbrasSyncNtp(baseUrl, dvr.auth.username, dvr.auth.password);
+    let r = { ok:false };
+    if (dvr.vendor === "intelbras") r = await intelbrasSyncNtp(baseUrl, dvr.auth.username, dvr.auth.password);
+    else if (dvr.vendor === "hikvision") r = await hikvisionSyncNtp(baseUrl, dvr.auth.username, dvr.auth.password);
+    else if (dvr.vendor === "jfl") r = await jflSyncNtp(baseUrl, dvr.auth.username, dvr.auth.password);
+    else return res.status(501).json({ ok:false });
     const ms = Date.now() - t0;
     log("[api] ntp-sync", dvr.id, r.ok ? "ok" : "fail", ms + "ms");
     return res.status(r.ok ? 200 : 502).json({ ok: r.ok });
-  } catch (err) {
+  } catch {
     const ms = Date.now() - t0;
     log("[api] ntp-sync", req.params.id, "error", ms + "ms");
     return res.status(500).json({ ok: false });

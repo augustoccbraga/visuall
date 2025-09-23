@@ -49,8 +49,12 @@ export default function TopPanel({ clientName, dvr, onTime, onHdd, onOpen }: Pro
   const timeOk = useMemo(() => {
     const v = panel?.timeText
     if (!v || v === "-") return false
-    const s = v.includes("T") ? v : v.replace(" ", "T")
-    const d = new Date(s)
+    let isoCandidate = v.includes("T") ? v : v.replace(" ", "T")
+    if (/^\d{2}-\d{2}-\d{4}\s+\d{2}:\d{2}:\d{2}$/.test(v)) {
+      const m = /^(\d{2})-(\d{2})-(\d{4})\s+(\d{2}):(\d{2}):(\d{2})$/.exec(v)!
+      isoCandidate = `${m[3]}-${m[2]}-${m[1]}T${m[4]}:${m[5]}:${m[6]}`
+    }
+    const d = new Date(isoCandidate)
     if (isNaN(d.getTime())) return false
     const diff = Math.abs(Date.now() - d.getTime())
     return diff <= 30_000
@@ -93,9 +97,10 @@ export default function TopPanel({ clientName, dvr, onTime, onHdd, onOpen }: Pro
   }, [panel?.hddLines])
 
   return (
-    <div className="h-full bg-zinc-900 text-zinc-100">
+    <div className="bg-zinc-900 text-zinc-100">
       <div className="mx-auto divide-y  border-white">
-        <div className="text-lg font-semibold p-2">{clientName || "-"} - {dvr?.name || "-"} 
+        <div className="text-lg font-semibold p-2 flex gap-2">
+          {clientName || "-"} - {dvr?.name || "-"} 
           <button onClick={() => { if (activeDvrId) fetchPanelIfStale(activeDvrId, true).catch(() => {}) }} className="p-1.5 rounded bg-zinc-800 hover:bg-zinc-700">
             <ArrowPathIcon className="w-5 h-5" />
           </button>

@@ -143,6 +143,94 @@
           "declaredChannels": 18
         }
       ]
+    },
+    {
+      "id": "004",
+      "name": "Albatroz",
+      "dvrs": [
+        {
+          "id": "dvr-00401",
+          "name": "DVR 1",
+          "vendor": "intelbras",
+          "auth": {
+            "ip": "cc210d22d0ed.sn.mynetname.net",
+            "httpPort": 8011,
+            "username": "admin",
+            "password": "R3D@4lb4tr0z",
+            "https": false,
+            "ddns": "cc210d22d0ed.sn.mynetname.net"
+          },
+          "declaredChannels": 32
+        },
+        {
+          "id": "dvr-00402",
+          "name": "DVR 2",
+          "vendor": "intelbras",
+          "auth": {
+            "ip": "cc210d22d0ed.sn.mynetname.net",
+            "httpPort": 8021,
+            "username": "admin",
+            "password": "R3D@4lb4tr0z",
+            "https": false,
+            "ddns": "cc210d22d0ed.sn.mynetname.net"
+          },
+          "declaredChannels": 3
+        }
+      ]
+    },
+    {
+      "id": "005",
+      "name": "Coral Garden",
+      "dvrs": [
+        {
+          "id": "dvr-00501",
+          "name": "DVR 1",
+          "vendor": "hikvision",
+          "auth": {
+            "ip": "cc210e71c813.sn.mynetname.net",
+            "httpPort": 8011,
+            "username": "admin",
+            "password": "R3D@c0r4l",
+            "https": false,
+            "ddns": "cc210e71c813.sn.mynetname.net"
+          },
+          "declaredChannels": 17
+        }
+      ]
+    },
+    {
+      "id": "006",
+      "name": "Genesis",
+      "dvrs": [
+        {
+          "id": "dvr-00601",
+          "name": "DVR 1",
+          "vendor": "jfl",
+          "auth": {
+            "ip": "cc210ef77c3d.sn.mynetname.net",
+            "httpPort": 8011,
+            "username": "admin",
+            "password": "R3D@g3n3s1s",
+            "https": false,
+            "ddns": "cc210ef77c3d.sn.mynetname.net"
+          },
+          "declaredChannels": 18
+        },
+        {
+          "id": "dvr-00602",
+          "name": "DVR 2",
+          "vendor": "jfl",
+          "auth": {
+            "ip": "cc210ef77c3d.sn.mynetname.net",
+            "httpPort": 8021,
+            "username": "admin",
+            "password": "R3D@g3n3s1s",
+            "https": false,
+            "ddns": "cc210ef77c3d.sn.mynetname.net"
+          },
+          "declaredChannels": 8
+        }
+      ]
     }
   ]
 }

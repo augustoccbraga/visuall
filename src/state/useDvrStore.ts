@@ -217,12 +217,13 @@ export const useDvrStore = create<StoreState>()(
             return { byId: { ...s.byId, [dvrId]: { ...cur, lastOverviewAt: Date.now() } } }
           }, false, "dvr/touch"),
 
-        getResolvedCounts: (dvrId) => {
+        getResolvedCounts: (dvrId: string) => {
           const cur = get().byId[dvrId]
           if (!cur) return { total: 0 }
+          const fromIndices = ((cur.indices?.analog?.length ?? 0) + (cur.indices?.ip?.length ?? 0)) || undefined
           const fromBackend = cur.counts ? cur.counts.analog + cur.counts.ip : undefined
           const fromChannels = Array.isArray(cur.channels) ? cur.channels.length : undefined
-          const total = fromBackend ?? fromChannels ?? cur.declaredChannels ?? 0
+          const total = fromIndices ?? fromBackend ?? fromChannels ?? cur.declaredChannels ?? 0
           return { total, analog: cur.counts?.analog, ip: cur.counts?.ip }
         },
 
